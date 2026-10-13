@@ -1,11 +1,27 @@
 import { useState } from "react";
 
+const DEMO_USERS_KEY = "taskflow-demo-users";
+
+const getDemoUsers = () => {
+  try {
+    const raw = localStorage.getItem(DEMO_USERS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveDemoUsers = (users) => {
+  localStorage.setItem(DEMO_USERS_KEY, JSON.stringify(users));
+};
+
 function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
-  // Xử lý đăng ký tài khoản
   const handleRegister = async () => {
     if (!fullName.trim() || !email.trim() || !password) {
       alert("Vui lòng nhập đầy đủ họ tên, email và mật khẩu!");
@@ -33,12 +49,33 @@ function Login({ onLogin }) {
       }
 
       alert("Đăng ký thành công!");
+      return;
     } catch (error) {
-      alert("Không kết nối được Backend!");
+      console.error("Lỗi khi đăng ký:", error);
     }
+
+    const users = getDemoUsers();
+    const normalizedEmail = email.trim().toLowerCase();
+    const exists = users.some(
+      (user) => user.email.toLowerCase() === normalizedEmail
+    );
+
+    if (exists) {
+      alert("Email đã được đăng ký!");
+      return;
+    }
+
+    const newUser = {
+      id: Date.now(),
+      email: normalizedEmail,
+      password,
+      full_name: fullName.trim(),
+    };
+
+    saveDemoUsers([...users, newUser]);
+    alert("Đăng ký thành công! (Demo mode)");
   };
 
-  // Xử lý đăng nhập
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -67,10 +104,30 @@ function Login({ onLogin }) {
       }
 
       alert("Đăng nhập thành công!");
-      onLogin();
+      onLogin(data.user);
+      return;
     } catch (error) {
-      alert("Không kết nối được Backend!");
+      console.error("Lỗi khi đăng nhập:", error);
     }
+
+    const users = getDemoUsers();
+    const matchedUser = users.find(
+      (user) =>
+        user.email.toLowerCase() === email.trim().toLowerCase() &&
+        user.password === password
+    );
+
+    if (!matchedUser) {
+      alert("Email hoặc mật khẩu không đúng!");
+      return;
+    }
+
+    alert("Đăng nhập thành công! (Demo mode)");
+    onLogin({
+      id: matchedUser.id,
+      email: matchedUser.email,
+      full_name: matchedUser.full_name,
+    });
   };
 
   return (
